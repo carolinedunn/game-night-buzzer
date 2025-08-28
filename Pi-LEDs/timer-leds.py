@@ -7,9 +7,9 @@ from gpiozero import Button, PWMOutputDevice, LED
 from time import monotonic, sleep
 
 # --- CONFIG ---
-TURN_SECONDS = 60          # default per-turn time
-WARN_YELLOW = 20           # turn yellow under 20s
-WARN_RED = 5               # turn red under 5s
+TURN_SECONDS = 10          # default per-turn time
+WARN_YELLOW = 4           # turn yellow under 20s
+WARN_RED = 2               # turn red under 5s
 
 BUTTON_PIN = 17
 BUZZER_PIN = 18            # PWM-capable
@@ -66,7 +66,7 @@ def on_press():
 btn.when_pressed = on_press
 
 try:
-    print("Game Timer Ready. Press button to start Player 1.")
+    print("Game Timer Ready. Press button to start.")
     while True:
         if state in ("P1_RUNNING", "P2_RUNNING"):
             remaining = max(0, int(round(deadline - monotonic())))
