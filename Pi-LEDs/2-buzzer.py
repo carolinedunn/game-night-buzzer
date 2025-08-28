@@ -23,4 +23,4 @@ def beep(freq=1000, duration=0.2, vol=0.5):
 
 while True:
 	beep(1000, 0.1, 0.7)
-    sleep(0.3)
+	sleep(0.3)

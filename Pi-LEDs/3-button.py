@@ -26,6 +26,7 @@ def beep(freq=1000, duration=0.2, vol=0.5):
     buzzer.value = 0
 
 while True:
+	print("press button to start")
 	btn.wait_for_press()
 	print("button pressed")
 	LED_G.on(); LED_Y.on(); LED_R.on()
