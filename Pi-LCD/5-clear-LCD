@@ -152,9 +152,8 @@ def beep(freq=1000, duration=0.2, vol=0.5):
 def lcd_show(player, remaining):
     lcd.lcd_display_string(f"Player {player}", 1)
     lcd.lcd_display_string(f"Time: {remaining:>3}s", 2)
-    print(remaining)
 
-def lcd_idle(msg_top="Press to start", msg_bot="   Game Timer"):
+def lcd_idle(msg_top="Welcome to", msg_bot="Game Night"):
     lcd.lcd_clear()
     lcd.lcd_display_string(msg_top, 1)
     lcd.lcd_display_string(msg_bot, 2)
@@ -189,33 +188,9 @@ def on_press():
         next_player()
 
 # --- MAIN LOOP ---
-if __name__ == "__main__":
-    btn.when_pressed = on_press
-    try:
-        lcd_idle()
-        print("LCD Game Timer Ready. Press button to start.")
-        while True:
-            if state in ("P1_RUNNING", "P2_RUNNING"):
-                remaining = max(0, int(round(deadline - monotonic())))
-                lights_for(remaining)
-                lcd_show(active_player, remaining)
-
-                if remaining <= 0:
-                    state = "TIMEOUT"
-                    # Timeout tones
-                    for f in (1200, 1000, 800, 600, 400):
-                        beep(f, 0.1, 0.7)
-                        sleep(0.03)
-                    LED_G.off(); LED_Y.off()
-                    LED_R.blink(on_time=0.15, off_time=0.15)
-                    lcd_idle("   TIME IS UP", "Press for next")
-            else:
-                sleep(0.05)  # idle/time-out chill
-    except KeyboardInterrupt:
-        print("\nExiting program.")
-    finally:
-        print("Cleaning up GPIO and LCD.")
-        lcd.lcd_clear()
-        buzzer.close()
-        LED_G.close(); LED_Y.close(); LED_R.close()
-        btn.close()
+while True:
+    print("Cleaning up GPIO and LCD.")
+    lcd.lcd_clear()
+    buzzer.close()
+    LED_G.close(); LED_Y.close(); LED_R.close()
+    sleep(10)
