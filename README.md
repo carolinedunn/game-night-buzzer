@@ -8,7 +8,7 @@ DIY, one-button, chess-clock-style timer for board & card games. Press the butto
 
 ## Wiring (default pins)
 
-<img src="wiring/LEDs,%20button,%20buzzer.jpg" alt="Wiring diagram: LEDs, button, buzzer" width="720"/>
+<img src="wiring/LCD screen.jpg" alt="Wiring diagram: LEDs, button, buzzer" width="720"/>
 
 | Part            | Pi GPIO | Physical Pin | Notes                                 |
 |-----------------|--------:|--------------|----------------------------------------|
@@ -32,12 +32,16 @@ DIY, one-button, chess-clock-style timer for board & card games. Press the butto
    ```bash
    sudo apt update && sudo apt upgrade
    git clone https://github.com/carolinedunn/game-night-buzzer.git
-   cd game-night-buzzer
 
 3. **Enable I²C**  
    `sudo raspi-config` → *Interface Options* → **I2C** → Enable → Reboot.
 
-4. **Install deps**
+4. **Install Audacity (record yourself)**
+   <br>Plug in a USB microphone.
+   ```bash
+   sudo apt install audacity
+
+6. **Install deps**
    ```bash
    sudo apt update
    sudo apt install -y python3-gpiozero python3-smbus i2c-tools
