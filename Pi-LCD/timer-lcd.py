@@ -2,7 +2,7 @@
 # pi_timer_lcd.py
 # Two-player turn timer with LCD readout, LEDs, and buzzer.
 # Self-contained: custom I2C LCD driver (no RPLCD).
-# Requires: gpiozero, smbus (or smbus2 as drop-in)
+# Requires: gpiozero, smbus (or smbus2)
 
 from gpiozero import Button, PWMOutputDevice, LED
 from time import monotonic, sleep
@@ -32,7 +32,16 @@ class i2c_device:
     """Helper class for I2C communication."""
     def __init__(self, addr, port=1):
         self.addr = addr
+        self.port = port               # <-- remember port so we can reopen bus
         self.bus = smbus.SMBus(port)
+    def reopen(self):
+        try:
+            # Some smbus impls don't have .close(); ignore if missing
+            if hasattr(self.bus, "close"):
+                self.bus.close()
+        except Exception:
+            pass
+        self.bus = smbus.SMBus(self.port)
     def write_cmd(self, cmd):
         self.bus.write_byte(self.addr, cmd)
         sleep(0.0001)
@@ -49,7 +58,7 @@ class lcd:
 
     # Entry mode flags
     LCD_ENTRYLEFT            = 0x02   # increment cursor
-    LCD_ENTRYSHIFTINCREMENT  = 0x01   # shift display (we will NOT set this)
+    # (do NOT set LCD_ENTRYSHIFTINCREMENT to avoid display shifting)
 
     # Display control flags
     LCD_DISPLAYON  = 0x04
@@ -63,7 +72,6 @@ class lcd:
 
     # Backlight
     LCD_BACKLIGHT   = 0x08
-    LCD_NOBACKLIGHT = 0x00
 
     # Control bits
     En = 0b00000100  # Enable
@@ -72,16 +80,24 @@ class lcd:
 
     def __init__(self, addr, port):
         self.lcd_device = i2c_device(addr, port)
+        self.init_hw()
 
-        # Init sequence
+    # --- init/reset helpers ---
+    def init_hw(self):
+        """Send the standard 4-bit init sequence + basic config."""
         self.lcd_write(0x03); self.lcd_write(0x03); self.lcd_write(0x03); self.lcd_write(0x02)
         self.lcd_write(self.LCD_FUNCTIONSET | self.LCD_2LINE | self.LCD_5x8DOTS | self.LCD_4BITMODE)
         self.lcd_write(self.LCD_DISPLAYCONTROL | self.LCD_DISPLAYON | self.LCD_CURSOROFF | self.LCD_BLINKOFF)
-        # IMPORTANT: increment cursor, NO display shift
-        self.lcd_write(self.LCD_ENTRYMODESET | self.LCD_ENTRYLEFT)
+        self.lcd_write(self.LCD_ENTRYMODESET | self.LCD_ENTRYLEFT)  # increment, no display shift
         self.lcd_clear()
         sleep(0.2)
 
+    def soft_reset(self):
+        """Reopen I²C bus and re-init the LCD (used after I/O errors)."""
+        self.lcd_device.reopen()
+        self.init_hw()
+
+    # --- low-level write primitives ---
     def lcd_strobe(self, data):
         self.lcd_device.write_cmd(data | self.En | self.LCD_BACKLIGHT)
         sleep(0.0005)
@@ -96,6 +112,7 @@ class lcd:
         self.lcd_write_four_bits(mode | (cmd & 0xF0))
         self.lcd_write_four_bits(mode | ((cmd << 4) & 0xF0))
 
+    # --- user-facing ops ---
     def lcd_clear(self):
         self.lcd_write(self.LCD_CLEARDISPLAY)
         self.lcd_write(self.LCD_RETURNHOME)
@@ -110,12 +127,6 @@ class lcd:
         string = string.ljust(16)[:16]
         for ch in string:
             self.lcd_write(ord(ch), self.Rs)
-
-    # Optional helper if you ever want positioning:
-    def lcd_set_cursor(self, col, row):  # row: 1 or 2
-        base = 0x00 if row == 1 else 0x40
-        col = max(0, min(15, col))
-        self.lcd_write(self.LCD_SETDDRAMADDR | (base + col))
 
 # =================================================================
 # == END: I2C LCD DRIVER CODE
@@ -135,6 +146,23 @@ state = "IDLE"
 active_player = 1
 deadline = None
 
+# ---- LCD safe helpers (retry once on I2C error) ----
+def lcd_safe_clear():
+    try:
+        lcd.lcd_clear()
+    except OSError:
+        lcd.soft_reset()
+        lcd.lcd_clear()
+
+def lcd_safe_show(player, remaining):
+    for attempt in range(2):  # try once, then reset+retry
+        try:
+            lcd.lcd_display_string(f"Player {player}", 1)
+            lcd.lcd_display_string(f"Time: {remaining:>3}s", 2)
+            return
+        except OSError:
+            lcd.soft_reset()
+
 def lights_for(remaining):
     if remaining > WARN_YELLOW:
         LED_G.on(); LED_Y.off(); LED_R.off()
@@ -149,26 +177,27 @@ def beep(freq=1000, duration=0.2, vol=0.5):
     sleep(duration)
     buzzer.value = 0
 
-def lcd_show(player, remaining):
-    lcd.lcd_display_string(f"Player {player}", 1)
-    lcd.lcd_display_string(f"Time: {remaining:>3}s", 2)
-    print(remaining)
-
 def lcd_idle(msg_top="Press to start", msg_bot="   Game Timer"):
-    lcd.lcd_clear()
-    lcd.lcd_display_string(msg_top, 1)
-    lcd.lcd_display_string(msg_bot, 2)
+    lcd_safe_clear()
+    lcd_safe_show(msg_top if isinstance(msg_top, int) else msg_top, 0)  # reuse helper for line formatting
+    # Overwrite line 2 explicitly:
+    for attempt in range(2):
+        try:
+            lcd.lcd_display_string(msg_bot, 2)
+            break
+        except OSError:
+            lcd.soft_reset()
 
 def start_turn(player):
-    """Start new turn (also clears TIMEOUT UI)."""
+    """Start new turn (also does LCD cleanup each turn)."""
     global state, active_player, deadline
     active_player = player
     deadline = monotonic() + TURN_SECONDS
     state = "P1_RUNNING" if player == 1 else "P2_RUNNING"
 
-    # Stop any timeout blinking and wipe old text
+    # Stop any timeout blinking and wipe old text (CLEANUP EACH TURN)
     LED_R.off()
-    lcd.lcd_clear()
+    lcd_safe_clear()
 
     # Start tones: P1=2 beeps @1200Hz, P2=3 beeps @900Hz
     count = 2 if player == 1 else 3
@@ -198,7 +227,7 @@ if __name__ == "__main__":
             if state in ("P1_RUNNING", "P2_RUNNING"):
                 remaining = max(0, int(round(deadline - monotonic())))
                 lights_for(remaining)
-                lcd_show(active_player, remaining)
+                lcd_safe_show(active_player, remaining)
 
                 if remaining <= 0:
                     state = "TIMEOUT"
@@ -208,14 +237,28 @@ if __name__ == "__main__":
                         sleep(0.03)
                     LED_G.off(); LED_Y.off()
                     LED_R.blink(on_time=0.15, off_time=0.15)
-                    lcd_idle("   TIME IS UP", "Press for next")
+                    # Show timeout UI with guards
+                    try:
+                        lcd_safe_clear()
+                        for attempt in range(2):
+                            try:
+                                lcd.lcd_display_string("   TIME IS UP", 1)
+                                lcd.lcd_display_string("Press for next", 2)
+                                break
+                            except OSError:
+                                lcd.soft_reset()
+                    except OSError:
+                        lcd.soft_reset()
             else:
                 sleep(0.05)  # idle/time-out chill
     except KeyboardInterrupt:
         print("\nExiting program.")
     finally:
         print("Cleaning up GPIO and LCD.")
-        lcd.lcd_clear()
+        try:
+            lcd_safe_clear()
+        except Exception:
+            pass
         buzzer.close()
         LED_G.close(); LED_Y.close(); LED_R.close()
         btn.close()
