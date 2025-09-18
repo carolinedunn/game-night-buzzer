@@ -2,6 +2,12 @@
 
 DIY, one-button, chess-clock-style timer for board & card games. Press the button, your turn ends, the next player’s countdown starts.
 
+[Watch Episode 1 — LEDs + Button + Buzzer](https://youtu.be/0G3-ISume2o)
+
+[Watch Episode 2 — LCD Screen](https://youtu.be/WSQV_xoQzLM)
+
+[Watch Episode 3 — Bluetooth Speaker + Custom Audio](https://youtu.be/rIc2U7KOW9k)
+
 [![Watch: Episode 1 — LEDs + Button + Buzzer](thumbnails/LEDs.jpg)](https://youtu.be/0G3-ISume2o)
 
 ---
