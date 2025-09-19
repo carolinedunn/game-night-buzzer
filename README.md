@@ -1,4 +1,4 @@
-# Game Night Buzzer — Raspberry Pi LED Turn Timer
+# Raspberry Pi Game Night Timer
 
 DIY, one-button, chess-clock-style timer for board & card games. Press the button, your turn ends, the next player’s countdown starts.
 
