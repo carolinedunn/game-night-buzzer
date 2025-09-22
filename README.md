@@ -28,7 +28,6 @@ DIY, one-button, chess-clock-style timer for board & card games. Press the butto
 | LCD Vcc         |   5 V   | 2/4          |                                        |
 | LCD GND         |   GND   | 6/9/14/etc   |                                        |
 
-> Using a **speaker via 3.5 mm jack** instead of the piezo? No GPIO buzzer wiring needed—see “Audio options” below.
 
 ---
 
@@ -42,14 +41,7 @@ DIY, one-button, chess-clock-style timer for board & card games. Press the butto
 3. **Enable I²C**  
    `sudo raspi-config` → *Interface Options* → **I2C** → Enable → Reboot.
 
-4. **Install Audacity (record yourself)**
+4. **Optional: Install Audacity (record yourself)**
    <br>Plug in a USB microphone.
    ```bash
    sudo apt install audacity
-
-6. **Install deps**
-   ```bash
-   sudo apt update
-   sudo apt install -y python3-gpiozero python3-smbus i2c-tools
-   # For 3.5mm speaker playback:
-   sudo apt install -y alsa-utils
