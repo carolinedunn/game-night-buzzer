@@ -14,7 +14,7 @@ DIY, one-button, chess-clock-style timer for board & card games. Press the butto
 
 ## Wiring (default pins)
 
-<img src="wiring/LCD screen.jpg" alt="Wiring diagram: LEDs, button, buzzer" width="720"/>
+<img src="wiring/LCD screen.png" alt="Wiring diagram: LEDs, button, buzzer" width="720"/>
 
 | Part            | Pi GPIO | Physical Pin | Notes                                 |
 |-----------------|--------:|--------------|----------------------------------------|
